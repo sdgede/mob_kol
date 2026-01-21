@@ -1,0 +1,165 @@
+name: sevanam_mobkol
+description: KSU MITRAKU
+
+# The following defines the version and build number for your application.
+# A version number is three numbers separated by dots, like 1.2.43
+# followed by an optional build number separated by a +.
+# Both the version and the builder number may be overridden in flutter
+# build by specifying --build-name and --build-number, respectively.
+# In Android, build-name is used as versionName while build-number used as versionCode.
+# Read more about Android versioning at https://developer.android.com/studio/publish/versioning
+# In iOS, build-name is used as CFBundleShortVersionString while build-number used as CFBundleVersion.
+# Read more about iOS versioning at
+# https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
+version: 1.0.1+2
+
+environment:
+  sdk: ">=2.12.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  animations: ^2.0.8
+  app_settings: ^7.0.0
+  badges: ^3.1.2
+  barcode_scan2: ^4.2.4
+  bootstrap_icons: ^1.10.5+2
+  connectivity_plus: ^7.0.0
+  countup: ^0.1.4
+  device_info_plus: ^12.3.0
+  dio: ^5.3.2
+  exif: ^3.1.4
+  filesystem_picker: ^4.1.0
+  firebase_messaging: ^16.1.0
+  flare_flutter: ^3.0.2
+  flutter_dash: ^1.0.0
+  flutter_easyloading: ^3.0.5
+  flutter_html: ^3.0.0-beta.2
+  flutter_localization: ^0.3.3
+  flutter_masked_text2: ^0.9.1
+
+  flutter_screenutil: ^5.9.0
+  geocoder2: ^1.4.0
+  get_it: ^9.2.0
+  google_maps_flutter: ^2.14.0
+  iconsax: ^0.0.8
+  intl: ^0.20.2
+  location: ^8.0.1
+  lottie: ^3.0.0
+  path_provider: ^2.1.5
+  permission_handler: ^12.0.1
+  pin_code_fields: ^8.0.1
+  provider: ^6.0.5
+  qr_flutter: ^4.1.0
+  rxdart: ^0.28.0
+  shared_preferences: ^2.2.1
+  showcaseview: ^5.0.1
+  sqflite: ^2.3.0
+  steel_crypt: ^3.0.0+1
+  syncfusion_flutter_datepicker: ^32.1.23
+  ticket_widget: ^1.0.2
+  webview_flutter: ^4.2.4
+  firebase_core: ^4.3.0
+  encrypt: ^5.0.1
+  url_launcher: ^6.3.2
+  flutter_initicon: ^3.0.0+1
+  geocoding: ^4.0.0
+  # shorebird_code_push: ^2.0.5
+  restart_app: ^1.2.1
+  flutter_dotenv: ^6.0.0
+  cloud_firestore: ^6.1.1
+  package_info_plus: ^9.0.0
+  uuid: ^4.2.2
+  bcrypt: ^1.2.0
+  flutter_native_image_v2: ^1.1.3
+  flutter_local_notifications: ^18.0.1
+  change_app_package_name: ^1.5.0
+  shorebird_code_push: ^2.0.5
+  google_fonts: ^4.0.4
+  print_bluetooth_thermal: ^1.1.9
+
+dev_dependencies:
+  carousel_slider: ^5.1.1
+  flutter_launcher_icons: ^0.14.4
+  flutter_staggered_animations: ^1.0.0
+  flutter_test:
+    sdk: flutter
+
+flutter_native_splash:
+  color: "E11E3C"
+  android_disable_fullscreen: true
+
+flutter_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icon/logo.png"
+
+# For information on the generic Dart part of this file, see the
+# following page: https://dart.dev/tools/pub/pubspec
+# The following section is specific to Flutter.
+flutter:
+  # The following line ensures that the Material Icons font is
+  # included with your application, so that you can use the icons in
+  # the material Icons class.
+  uses-material-design: true
+
+  # To add assets to your application, add an assets section, like this:
+  assets:
+    - assets/images/
+    - assets/icon/
+    - assets/merchant/
+    - assets/lottie/
+    - assets/database/sqlite_koperasi.db
+    - .env
+  fonts:
+    - family: CustomIcons
+      fonts:
+        - asset: assets/icon/BottombarIconsV2.ttf
+    # fonts:
+    # - family: Ubuntu
+    #   fonts:
+    #     - asset: assets/fonts/Ubuntu-Light.ttf
+    #       weight: 500
+    #     - asset: assets/fonts/Ubuntu-Regular.ttf
+    #       weight: 600
+    #     - asset: assets/fonts/Ubuntu-Medium.ttf
+    #       weight: 700
+    # - family: Poppins
+    #   fonts:
+    #     - asset: assets/fonts/Poppins-Regular.ttf
+    #       weight: 500
+    #     - asset: assets/fonts/Poppins-SemiBold.ttf
+    #       weight: 600
+    #     - asset: assets/fonts/Poppins-Bold.ttf
+    #       weight: 700
+    # - family: OpenSans
+    #   fonts:
+    #     - asset: assets/fonts/OpenSans-Regular.ttf
+    #       weight: 500
+    #     - asset: assets/fonts/OpenSans-SemiBold.ttf
+    #       weight: 600
+    #     - asset: assets/fonts/OpenSans-Bold.ttf
+    #       weight: 700
+  # An image asset can refer to one or more resolution-specific "variants", see
+  # https://flutter.dev/assets-and-images/#resolution-aware.
+  # For details regarding adding assets from package dependencies, see
+  # https://flutter.dev/assets-and-images/#from-packages
+  # To add custom fonts to your application, add a fonts section here,
+  # in this "flutter" section. Each entry in this list should have a
+  # "family" key with the font family name, and a "fonts" key with a
+  # list giving the asset and other descriptors for the font. For
+  # example:
+  # fonts:
+  #   - family: Schyler
+  #     fonts:
+  #       - asset: fonts/Schyler-Regular.ttf
+  #       - asset: fonts/Schyler-Italic.ttf
+  #         style: italic
+  #   - family: Trajan Pro
+  #     fonts:
+  #       - asset: fonts/TrajanPro.ttf
+  #       - asset: fonts/TrajanPro_Bold.ttf
+  #         weight: 700
+  #
+  # For details regarding fonts from package dependencies,
+  # see https://flutter.dev/custom-fonts/#from-packages
