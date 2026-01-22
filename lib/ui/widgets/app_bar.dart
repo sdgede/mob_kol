@@ -87,7 +87,8 @@ AppBar DefaultAppBar(
 }
 
 // ignore: non_constant_identifier_names
-Widget CloseAppBar(BuildContext context, String title, [bool isCenter = false]) {
+Widget CloseAppBar(BuildContext context, String title,
+    [bool isCenter = false]) {
   return new AppBar(
     backgroundColor: accentColor,
     leading: IconButton(
@@ -102,7 +103,8 @@ Widget CloseAppBar(BuildContext context, String title, [bool isCenter = false]) 
     title: isCenter
         ? Center(
             child: Container(
-              margin: EdgeInsets.only(right: MediaQuery.of(context).size.width / 6),
+              margin:
+                  EdgeInsets.only(right: MediaQuery.of(context).size.width / 6),
               child: Text(
                 title,
                 style: GoogleFonts.ubuntu(
