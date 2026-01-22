@@ -22,7 +22,8 @@ class _MainTransaksi extends State<MainTransaksi> {
   var scaffoldKey = GlobalKey<ScaffoldState>();
   bool? _isScan;
   ScrollController? produkScrollCOntroller;
-  TextEditingController nomorRekController = new TextEditingController(), _controllerReq = new TextEditingController();
+  TextEditingController nomorRekController = new TextEditingController(),
+      _controllerReq = new TextEditingController();
   // ignore: unused_field
   List<DropdownMenuItem<NorekShortcut>>? _countryItems;
   // ignore: unused_field
@@ -45,8 +46,10 @@ class _MainTransaksi extends State<MainTransaksi> {
   void initState() {
     super.initState();
     _isScan = false;
-    produkProvider = Provider.of<ProdukCollectionProvider>(context, listen: false);
-    produkProvider!.setAllDatafirstSelectedProduct(context: context, isListen: false);
+    produkProvider =
+        Provider.of<ProdukCollectionProvider>(context, listen: false);
+    produkProvider!
+        .setAllDatafirstSelectedProduct(context: context, isListen: false);
     _initNorekShortCut();
   }
 
@@ -63,7 +66,8 @@ class _MainTransaksi extends State<MainTransaksi> {
           floatingActionButton: floatingActionSwitchMode(context),
           appBar: DefaultAppBar(
             context,
-            "Transaksi " + (produkProv.getSelectedProdukName ?? ' - ').toLowerCase(),
+            "Transaksi " +
+                (produkProv.getSelectedProdukName ?? ' - ').toLowerCase(),
             isCenter: true,
             isRefresh: true,
             onRefresh: () => produkProvider!.refreshProdukCollection(),
@@ -81,7 +85,8 @@ class _MainTransaksi extends State<MainTransaksi> {
                   SizedBox(height: 10),
                   _checkBox(type: "isScan", text: "Mode scan"),
                   SizedBox(height: 20),
-                  textFieldNorek(produkProv.getSelectedRekShortcut ?? '', produkProv.getSelectedgroupProdukProduk ?? ''),
+                  textFieldNorek(produkProv.getSelectedRekShortcut ?? '',
+                      produkProv.getSelectedgroupProdukProduk ?? ''),
                   SizedBox(height: 10),
                   buttonCari(),
                 ],
@@ -158,9 +163,12 @@ class _MainTransaksi extends State<MainTransaksi> {
     //NOREK SHORTCUT PARSE
 
     _controllerReq.text = rekParse;
-    if (groupProduk != 'KREDIT') _controllerReq.selection = TextSelection.fromPosition(TextPosition(offset: _controllerReq.text.length));
+    if (groupProduk != 'KREDIT')
+      _controllerReq.selection = TextSelection.fromPosition(
+          TextPosition(offset: _controllerReq.text.length));
     return Container(
-        padding: EdgeInsets.only(left: _primaryPadding!, right: _primaryPadding!),
+        padding:
+            EdgeInsets.only(left: _primaryPadding!, right: _primaryPadding!),
         child: Column(
           children: [
             Stack(

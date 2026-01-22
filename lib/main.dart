@@ -25,129 +25,247 @@ import 'services/utils/platform_utils.dart';
 import 'services/utils/connectivity_utils.dart';
 import 'setup.dart';
 import 'ui/constant/constant.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
+import 'package:flutter/foundation.dart';
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
 
-// PERBAIKAN 1: Background handler harus di luar class dan tanpa BuildContext
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  // Initialize Firebase jika belum
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
 
-  debugPrint('Handling background message: ${message.messageId}');
+    debugPrint('Handling background message: ${message.messageId}');
 
-  // Handle notifikasi di background
-  if (message.notification != null) {
-    debugPrint('Background Notification: ${message.notification?.title}');
+    if (message.notification != null) {
+      debugPrint('Background Notification: ${message.notification?.title}');
+    }
+  } catch (e, stackTrace) {
+    // ✅ Capture error ke Sentry
+    await Sentry.captureException(
+      e,
+      stackTrace: stackTrace,
+      hint: Hint.withMap({
+        'handler': 'firebaseMessagingBackgroundHandler',
+        'messageId': message.messageId,
+      }),
+    );
+    debugPrint('Background handler error: $e');
   }
 }
 
+// ✅ PERBAIKAN SENTRY 2: Setup Firebase Messaging dengan error handling lengkap
 Future<void> setupFirebaseMessaging(BuildContext context) async {
-  // PERBAIKAN 2: Set background handler dengan benar
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  try {
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-  FirebaseMessaging messaging = FirebaseMessaging.instance;
+    FirebaseMessaging messaging = FirebaseMessaging.instance;
 
-  // Request permission
-  NotificationSettings settings = await messaging.requestPermission(
-    alert: true,
-    announcement: false,
-    badge: true,
-    carPlay: false,
-    criticalAlert: false,
-    provisional: false,
-    sound: true,
-  );
+    // Request permission
+    NotificationSettings settings = await messaging.requestPermission(
+      alert: true,
+      announcement: false,
+      badge: true,
+      carPlay: false,
+      criticalAlert: false,
+      provisional: false,
+      sound: true,
+    );
 
-  debugPrint('User granted permission: ${settings.authorizationStatus}');
+    debugPrint('User granted permission: ${settings.authorizationStatus}');
 
-  // PERBAIKAN 3: Foreground message handler
-  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-    debugPrint('Got a message whilst in the foreground!');
-    debugPrint('Message data: ${message.data}');
+    // Foreground message handler
+    FirebaseMessaging.onMessage.listen(
+      (RemoteMessage message) {
+        try {
+          debugPrint('Got a message whilst in the foreground!');
+          debugPrint('Message data: ${message.data}');
 
-    if (message.notification != null) {
-      debugPrint(
-          'Message also contained a notification: ${message.notification}');
+          if (message.notification != null) {
+            debugPrint(
+                'Message contained notification: ${message.notification}');
 
-      // Tampilkan notifikasi
-      NotificationUtils.instance.showNotification(
-        context,
-        message.notification?.title ?? "",
-        message.notification?.body ?? "",
+            NotificationUtils.instance.showNotification(
+              context,
+              message.notification?.title ?? "",
+              message.notification?.body ?? "",
+            );
+          }
+        } catch (e, stackTrace) {
+          // ✅ Capture error saat handle foreground message
+          Sentry.captureException(
+            e,
+            stackTrace: stackTrace,
+            hint: Hint.withMap({
+              'handler': 'onMessage',
+              'messageId': message.messageId,
+            }),
+          );
+        }
+      },
+      onError: (error) {
+        Sentry.captureException(
+          error,
+          hint: Hint.withMap({'handler': 'onMessage.stream'}),
+        );
+      },
+    );
+
+    // Handle notifikasi yang di-tap
+    FirebaseMessaging.onMessageOpenedApp.listen(
+      (RemoteMessage message) {
+        try {
+          debugPrint('A new onMessageOpenedApp event was published!');
+          // Handle navigation atau action
+        } catch (e, stackTrace) {
+          Sentry.captureException(
+            e,
+            stackTrace: stackTrace,
+            hint: Hint.withMap({
+              'handler': 'onMessageOpenedApp',
+              'messageId': message.messageId,
+            }),
+          );
+        }
+      },
+      onError: (error) {
+        Sentry.captureException(
+          error,
+          hint: Hint.withMap({'handler': 'onMessageOpenedApp.stream'}),
+        );
+      },
+    );
+
+    // Get FCM token
+    try {
+      String? token = await messaging.getToken();
+      if (token != null) {
+        debugPrint("FCM Token: $token");
+
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        String? savedToken = prefs.getString("firebase_id");
+
+        if (savedToken == null || savedToken.isEmpty || savedToken != token) {
+          await prefs.setString('firebase_id', token);
+          debugPrint("FCM Token saved to SharedPreferences");
+        }
+
+        config.firebaseId = token;
+        config.platform = await PlatformUtils.distance.initPlatformState();
+      } else {
+        debugPrint("FCM Token: failed to get token");
+        Sentry.captureMessage(
+          'FCM Token is null',
+          level: SentryLevel.warning,
+        );
+      }
+    } catch (e, stackTrace) {
+      debugPrint("FCM Token error: $e");
+      await Sentry.captureException(
+        e,
+        stackTrace: stackTrace,
+        hint: Hint.withMap({'action': 'getToken'}),
       );
     }
-  });
 
-  // PERBAIKAN 4: Handle notifikasi yang di-tap
-  FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-    debugPrint('A new onMessageOpenedApp event was published!');
-    // Handle navigation atau action saat notifikasi di-tap
-  });
-
-  // Get FCM token
-  try {
-    String? token = await messaging.getToken();
-    if (token != null) {
-      debugPrint("FCM Token: $token");
-
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      String? savedToken = prefs.getString("firebase_id");
-
-      // PERBAIKAN 5: Logic yang benar untuk save token
-      if (savedToken == null || savedToken.isEmpty || savedToken != token) {
-        await prefs.setString('firebase_id', token);
-        debugPrint("FCM Token saved to SharedPreferences");
-      }
-
-      config.firebaseId = token;
-      config.platform = await PlatformUtils.distance.initPlatformState();
-    } else {
-      debugPrint("FCM Token: failed to get token");
-    }
-  } catch (e) {
-    debugPrint("FCM Token error: $e");
+    // Listen untuk token refresh
+    messaging.onTokenRefresh.listen(
+      (newToken) async {
+        try {
+          debugPrint("FCM Token refreshed: $newToken");
+          SharedPreferences prefs = await SharedPreferences.getInstance();
+          await prefs.setString('firebase_id', newToken);
+          config.firebaseId = newToken;
+        } catch (e, stackTrace) {
+          Sentry.captureException(
+            e,
+            stackTrace: stackTrace,
+            hint: Hint.withMap({'handler': 'onTokenRefresh'}),
+          );
+        }
+      },
+      onError: (error) {
+        Sentry.captureException(
+          error,
+          hint: Hint.withMap({'handler': 'onTokenRefresh.stream'}),
+        );
+      },
+    );
+  } catch (e, stackTrace) {
+    debugPrint("Firebase messaging setup error: $e");
+    await Sentry.captureException(
+      e,
+      stackTrace: stackTrace,
+      hint: Hint.withMap({'function': 'setupFirebaseMessaging'}),
+    );
+    rethrow; // Optional: lempar ulang jika perlu
   }
-
-  // PERBAIKAN 6: Listen untuk token refresh
-  messaging.onTokenRefresh.listen((newToken) async {
-    debugPrint("FCM Token refreshed: $newToken");
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString('firebase_id', newToken);
-    config.firebaseId = newToken;
-  });
 }
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // PERBAIKAN 7: Initialize Firebase dengan error handling
-  try {
-    if (Firebase.apps.isEmpty) {
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      );
-      debugPrint("Firebase initialized successfully");
-    }
-  } catch (e) {
-    debugPrint("Firebase initialization error: $e");
-  }
+  await SentryFlutter.init(
+    (options) {
+      options.dsn =
+          'https://f8c977317cc302845a146e3cd9985a08@o4510751443255296.ingest.de.sentry.io/4510751444566096';
 
-  // PERBAIKAN 8: Load environment dengan error handling
-  try {
-    await dotenv.load(fileName: ".env");
-    debugPrint("Environment variables loaded");
-  } catch (e) {
-    debugPrint("Error loading .env file: $e");
-  }
+      options.tracesSampleRate = 1.0;
+      options.profilesSampleRate = 1.0;
 
-  setupApp();
-  configLoading();
+      options.environment = kReleaseMode ? 'production' : 'development';
 
-  runApp(MyApp());
+      options.release = 'sevanam_mobkol@1.0.0';
+      options.beforeSend = (event, hint) {
+        // Filter error spesifik jika perlu
+        if (event.message?.formatted.contains('Some ignorable error') == true) {
+          return null; // Tidak kirim ke Sentry
+        }
+        return event;
+      };
+
+      options.maxBreadcrumbs = 100;
+    },
+    appRunner: () async {
+      try {
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        );
+      } catch (e, stackTrace) {
+        await Sentry.captureException(
+          e,
+          stackTrace: stackTrace,
+          hint: Hint.withMap({'init': 'Firebase'}),
+        );
+      }
+
+      try {
+        await dotenv.load(fileName: ".env");
+      } catch (e, stackTrace) {
+        await Sentry.captureException(
+          e,
+          stackTrace: stackTrace,
+          hint: Hint.withMap({'init': 'dotenv'}),
+        );
+      }
+
+      try {
+        setupApp();
+      } catch (e, stackTrace) {
+        await Sentry.captureException(
+          e,
+          stackTrace: stackTrace,
+          hint: Hint.withMap({'init': 'setupApp'}),
+        );
+      }
+
+      configLoading();
+      runApp(SentryWidget(child: MyApp()));
+    },
+  );
 }
 
 void configLoading() {
@@ -164,7 +282,7 @@ void configLoading() {
     ..textColor = Colors.yellow
     ..maskColor = Colors.blue.withOpacity(0.5)
     ..userInteractions = false
-    ..dismissOnTap = false; // PERBAIKAN 9: Tambahkan ini
+    ..dismissOnTap = false;
 }
 
 class MyApp extends StatefulWidget {
@@ -184,83 +302,87 @@ class _MyAppState extends State<MyApp> {
 
     try {
       await setupFirebaseMessaging(context);
-      setState(() => _firebaseInitialized = true); // PERBAIKAN 10: Set state
+      setState(() => _firebaseInitialized = true);
       debugPrint("Firebase messaging setup completed");
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint("Firebase messaging setup error: $e");
+      await Sentry.captureException(
+        e,
+        stackTrace: stackTrace,
+        hint: Hint.withMap({'function': '_initFirebase'}),
+      );
     }
   }
 
   @override
   void initState() {
     super.initState();
-    // _requestIOSPermissions();
 
-    // PERBAIKAN 11: Better delayed initialization
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && navigatorKey.currentContext != null) {
-        ConnectivityUtils.distance.onCheckConnectivity(
-          navigatorKey.currentContext!,
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      try {
+        if (mounted && navigatorKey.currentContext != null) {
+          ConnectivityUtils.distance.onCheckConnectivity(
+            navigatorKey.currentContext!,
+          );
+          await _initFirebase(navigatorKey.currentContext!);
+        }
+      } catch (e, stackTrace) {
+        Sentry.captureException(
+          e,
+          stackTrace: stackTrace,
+          hint: Hint.withMap({'callback': 'addPostFrameCallback'}),
         );
-        _initFirebase(navigatorKey.currentContext!);
       }
     });
   }
 
-  // void _requestIOSPermissions() {
-  //   // PERBAIKAN 12: Tambah platform check
-  //   if (Platform.isIOS) {
-  //     flutterLocalNotificationsPlugin
-  //         .resolvePlatformSpecificImplementation
-  //             IOSFlutterLocalNotificationsPlugin>()?.requestPermissions(
-  //           alert: true,
-  //           badge: true,
-  //           sound: true,
-  //         );
-  //   }
-  // }
-
   void _checkLocation() async {
-    // PERBAIKAN 13: Better null check
-    if (navigatorKey.currentContext == null) return;
+    try {
+      if (navigatorKey.currentContext == null) return;
 
-    bool location = await LocationUtils.instance.getLocationOnly();
+      bool location = await LocationUtils.instance.getLocationOnly();
 
-    if (!_modalOpened && !location && mounted) {
-      _modalOpened = true;
+      if (!_modalOpened && !location && mounted) {
+        _modalOpened = true;
 
-      showModal(
-        context: navigatorKey.currentContext!,
-        configuration:
-            FadeScaleTransitionConfiguration(barrierDismissible: false),
-        builder: (context) {
-          return InfoDialog(
-            title: "Opps...",
-            text:
-                "Pastikan Anda mengizinkan $mobileName untuk mengakses lokasi Anda.",
-            clickOKText: "OK",
-            onClickOK: () async {
-              Navigator.of(context, rootNavigator: true).pop();
+        showModal(
+          context: navigatorKey.currentContext!,
+          configuration:
+              FadeScaleTransitionConfiguration(barrierDismissible: false),
+          builder: (context) {
+            return InfoDialog(
+              title: "Opps...",
+              text:
+                  "Pastikan Anda mengizinkan $mobileName untuk mengakses lokasi Anda.",
+              clickOKText: "OK",
+              onClickOK: () async {
+                Navigator.of(context, rootNavigator: true).pop();
 
-              location = await LocationUtils.instance.getLocationOnly();
-              if (!location) {
-                AppSettings.openAppSettings();
-              }
-            },
-            isCancel: false,
-          );
-        },
-      ).then((value) {
-        if (mounted) {
-          setState(() => _modalOpened = false); // PERBAIKAN 14: Set state
-        }
-      });
+                location = await LocationUtils.instance.getLocationOnly();
+                if (!location) {
+                  AppSettings.openAppSettings();
+                }
+              },
+              isCancel: false,
+            );
+          },
+        ).then((value) {
+          if (mounted) {
+            setState(() => _modalOpened = false);
+          }
+        });
+      }
+    } catch (e, stackTrace) {
+      Sentry.captureException(
+        e,
+        stackTrace: stackTrace,
+        hint: Hint.withMap({'function': '_checkLocation'}),
+      );
     }
   }
 
   @override
   void dispose() {
-    // PERBAIKAN 15: Bersihkan resources jika ada
     super.dispose();
   }
 

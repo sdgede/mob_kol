@@ -17,6 +17,7 @@ environment:
   sdk: ">=2.12.0 <4.0.0"
 
 dependencies:
+  sentry_flutter: ^9.10.0
   flutter:
     sdk: flutter
   animations: ^2.0.8
@@ -39,7 +40,6 @@ dependencies:
   flutter_masked_text2: ^0.9.1
 
   flutter_screenutil: ^5.9.0
-  geocoder2: ^1.4.0
   get_it: ^9.2.0
   google_maps_flutter: ^2.14.0
   iconsax: ^0.0.8
@@ -75,10 +75,12 @@ dependencies:
   flutter_local_notifications: ^18.0.1
   change_app_package_name: ^1.5.0
   shorebird_code_push: ^2.0.5
-  google_fonts: ^4.0.4
+
   print_bluetooth_thermal: ^1.1.9
+  google_fonts: ^6.2.1
 
 dev_dependencies:
+  sentry_dart_plugin: ^3.2.1
   carousel_slider: ^5.1.1
   flutter_launcher_icons: ^0.14.4
   flutter_staggered_animations: ^1.0.0
@@ -114,7 +116,8 @@ flutter:
   fonts:
     - family: CustomIcons
       fonts:
-        - asset: assets/icon/BottombarIconsV2.ttf
+        - asset: assets/icon/Bottombariconsv2.ttf
+
     # fonts:
     # - family: Ubuntu
     #   fonts:
@@ -163,3 +166,9 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/custom-fonts/#from-packages
+
+sentry:
+  upload_debug_symbols: true
+  upload_source_maps: true
+  project: flutter
+  org: gedeindrawan
