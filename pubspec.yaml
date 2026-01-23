@@ -78,11 +78,11 @@ dependencies:
 
   print_bluetooth_thermal: ^1.1.9
   google_fonts: ^6.2.1
+  flutter_launcher_icons: ^0.14.4
 
 dev_dependencies:
   sentry_dart_plugin: ^3.2.1
   carousel_slider: ^5.1.1
-  flutter_launcher_icons: ^0.14.4
   flutter_staggered_animations: ^1.0.0
   flutter_test:
     sdk: flutter
@@ -91,10 +91,20 @@ flutter_native_splash:
   color: "E11E3C"
   android_disable_fullscreen: true
 
-flutter_icons:
+flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
   image_path: "assets/icon/logo.png"
+  web:
+    generate: true
+    image_path: "assets/icon/logo.png"
+  windows:
+    generate: true
+    image_path: "assets/icon/logo.png"
+  macos:
+    generate: true
+    image_path: "assets/icon/logo.png"
+  min_sdk_android: 21
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

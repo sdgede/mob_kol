@@ -53,6 +53,36 @@ class _MainTransaksi extends State<MainTransaksi> {
     _initNorekShortCut();
   }
 
+  // FUNGSI VALIDASI PRODUK DIPILIH
+  bool _validateProdukSelected() {
+    if (produkProvider?.getSelectedProdukName == null ||
+        produkProvider?.getSelectedProdukName == ' - ') {
+      _showErrorDialog('Pilih Produk Terlebih Dahulu',
+          'Silakan pilih salah satu produk sebelum melakukan pencarian.');
+      return false;
+    }
+    return true;
+  }
+
+  // FUNGSI MENAMPILKAN DIALOG ERROR
+  void _showErrorDialog(String title, String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(title),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     _width = MediaQuery.of(context).size.width;
@@ -62,6 +92,11 @@ class _MainTransaksi extends State<MainTransaksi> {
           produkProv.dataProduk(context);
           return LottiePrimaryLoader();
         }
+
+        // CEK APAKAH PRODUK SUDAH DIPILIH
+        bool isProdukSelected = produkProv.getSelectedProdukName != null &&
+            produkProv.getSelectedProdukName != ' - ';
+
         return Scaffold(
           floatingActionButton: floatingActionSwitchMode(context),
           appBar: DefaultAppBar(
@@ -80,6 +115,26 @@ class _MainTransaksi extends State<MainTransaksi> {
               physics: BouncingScrollPhysics(),
               child: Column(
                 children: <Widget>[
+                  if (!isProdukSelected)
+                    Container(
+                      padding:
+                          EdgeInsets.symmetric(horizontal: _primaryPadding!),
+                      margin: EdgeInsets.only(bottom: 10),
+                      child: Row(
+                        children: [
+                          Icon(Icons.info_outline,
+                              size: 16, color: Colors.orange),
+                          SizedBox(width: 5),
+                          Text(
+                            'Pilih produk terlebih dahulu',
+                            style: TextStyle(
+                              color: Colors.orange[700],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   scrollTag(context),
                   Divider(),
                   SizedBox(height: 10),
@@ -215,16 +270,23 @@ class _MainTransaksi extends State<MainTransaksi> {
         color: Colors.transparent,
         child: InkWell(
           onTap: () async {
+            // VALIDASI PRODUK HARUS DIPILIH DULU
+            if (!_validateProdukSelected()) {
+              return; // Stop eksekusi jika produk belum dipilih
+            }
+
             var _norekResult = _controllerReq.text;
             var _groupProduk = produkProvider!.getSelectedgroupProdukProduk;
             var _rekCd = produkProvider!.getSelectedRkCdProduk;
             var _produkIc = produkProvider!.getSelectedProdukIcon;
+
             if (_isScan!) {
               _norekResult = await QRUtils.instance.qrScanner(context);
               setState(() {
                 _controllerReq.text = _norekResult;
               });
             }
+
             bool res = await produkProvider!.getDataProdukByRek(
                   context,
                   _norekResult,
