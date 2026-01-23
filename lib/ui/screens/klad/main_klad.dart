@@ -28,7 +28,8 @@ class MainKlad extends StatefulWidget {
 }
 
 class _MainKlad extends State<MainKlad> {
-  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
   ProdukCollectionProvider? produkProvider;
   GlobalProvider? globalProv;
   TransaksiProvider? transProvider;
@@ -44,19 +45,91 @@ class _MainKlad extends State<MainKlad> {
   @override
   void initState() {
     super.initState();
-    produkProvider = Provider.of<ProdukCollectionProvider>(context, listen: false);
+
+    print("═══════════════════════════════════════════════════════");
+    print("🚀 [MainKlad] initState - Memulai inisialisasi halaman");
+    print("═══════════════════════════════════════════════════════");
+
+    produkProvider =
+        Provider.of<ProdukCollectionProvider>(context, listen: false);
     globalProv = Provider.of<GlobalProvider>(context, listen: false);
     transProvider = Provider.of<TransaksiProvider>(context, listen: false);
+
     globalProv!.loadLocation(context);
     produkProvider!.resetMutasiTransaksi(isListen: false);
     produkProvider!.setTglAwal(_tglAwal);
     produkProvider!.setTglAkhir(_tglAkhir);
+
+    print("✅ [MainKlad] Provider berhasil diinisialisasi");
+
+    // AUTO-SELECT produk pertama setelah frame selesai render
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      print("⏰ [MainKlad] Frame pertama selesai, memulai auto-select...");
+      _initializeFirstProduct();
+    });
+  }
+
+  // TAMBAHKAN METHOD BARU INI (taruh setelah initState)
+  Future<void> _initializeFirstProduct() async {
+    print("");
+    print("═══════════════════════════════════════════════════════");
+    print("🎯 [MainKlad] MEMULAI INISIALISASI PRODUK PERTAMA");
+    print("═══════════════════════════════════════════════════════");
+
+    try {
+      // Step 1: Cek apakah produk collection sudah ada
+      if (produkProvider!.produkCollection == null) {
+        print("📡 [MainKlad] Produk belum dimuat");
+        print("   → Memanggil dataProduk() dengan autoSelect=true");
+        await produkProvider!.dataProduk(context, autoSelect: true);
+      } else {
+        print("✅ [MainKlad] Produk sudah dimuat sebelumnya");
+        print("   Total produk: ${produkProvider!.produkCollection!.length}");
+
+        // Step 2: Cek apakah sudah ada produk yang dipilih
+        if (produkProvider!.getSelectedProdukName == null) {
+          print("🔍 [MainKlad] Belum ada produk terpilih");
+          print("   → Memanggil setAllDatafirstSelectedProduct()");
+          await produkProvider!
+              .setAllDatafirstSelectedProduct(context: context);
+        } else {
+          print("✅ [MainKlad] Produk sudah terpilih sebelumnya");
+          print("   Produk: ${produkProvider!.getSelectedProdukName}");
+        }
+      }
+
+      // Step 3: Setelah produk terpilih, load data klad
+      if (produkProvider!.getSelectedProdukName != null) {
+        print("");
+        print("📊 [MainKlad] Loading data klad...");
+        print("   Produk: ${produkProvider!.getSelectedProdukName}");
+        print("   Periode: $_tglAwal - $_tglAkhir");
+
+        await produkProvider!.getDataKlad(context);
+
+        print("✅ [MainKlad] Data klad berhasil dimuat");
+      } else {
+        print("⚠️ [MainKlad] Tidak ada produk terpilih");
+        print("   Skip loading data klad");
+      }
+    } catch (e, stackTrace) {
+      print("❌ [MainKlad] ERROR saat inisialisasi produk:");
+      print("   Error: $e");
+      print("   StackTrace: $stackTrace");
+    }
+
+    print("");
+    print("═══════════════════════════════════════════════════════");
+    print("✅ [MainKlad] INISIALISASI PRODUK SELESAI");
+    print("═══════════════════════════════════════════════════════");
+    print("");
   }
 
   @override
   Widget build(BuildContext context) {
     _width = MediaQuery.of(context).size.width;
-    return Consumer3<ProdukCollectionProvider, GlobalProvider, TransaksiProvider>(
+    return Consumer3<ProdukCollectionProvider, GlobalProvider,
+        TransaksiProvider>(
       builder: (contex, produkProv, globalProvider, trxProv, _) {
         if (produkProv.produkCollection == null) {
           produkProv.dataProduk(context);
@@ -67,18 +140,19 @@ class _MainKlad extends State<MainKlad> {
         }
 
         return Scaffold(
-          floatingActionButton: globalProvider.getConnectionMode == config.offlineMode
-              ? Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 32),
-                      child: _floatingActionUploadTrx(contex),
-                    ),
-                    floatingActionSwitchMode(context, isKlad: true)
-                  ],
-                )
-              : floatingActionSwitchMode(context, isKlad: true),
+          floatingActionButton:
+              globalProvider.getConnectionMode == config.offlineMode
+                  ? Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 32),
+                          child: _floatingActionUploadTrx(contex),
+                        ),
+                        floatingActionSwitchMode(context, isKlad: true)
+                      ],
+                    )
+                  : floatingActionSwitchMode(context, isKlad: true),
           appBar: DefaultAppBar(
             context,
             "Klad " + (produkProv.getSelectedProdukName ?? ' - ').toLowerCase(),
@@ -103,7 +177,9 @@ class _MainKlad extends State<MainKlad> {
                   scrollTag(context),
                   Divider(),
                   SizedBox(height: 10),
-                  if (produkProv.getSelectedgroupProdukProduk != null && produkProv.muatasiProdukCollection != null) _cardInfoTotalTrans(produkProv),
+                  if (produkProv.getSelectedgroupProdukProduk != null &&
+                      produkProv.muatasiProdukCollection != null)
+                    _cardInfoTotalTrans(produkProv),
                   //SizedBox(height: 10),
                   // _searchForm(),
                   SizedBox(height: 10),
@@ -126,7 +202,9 @@ class _MainKlad extends State<MainKlad> {
           onPressed: () async {
             bool _confirm = await DialogUtils.instance.dialogConfirm(
               context,
-              "Ingin mengupload seluruh data transaksi " + (produkProv.getSelectedProdukName ?? ' - ').toLowerCase() + "?",
+              "Ingin mengupload seluruh data transaksi " +
+                  (produkProv.getSelectedProdukName ?? ' - ').toLowerCase() +
+                  "?",
             );
             if (_confirm) startService();
           },
@@ -152,12 +230,18 @@ class _MainKlad extends State<MainKlad> {
     double _totSaldo = 0, _totalTrx = 0;
     int _countSetoran = 0, _countTarikan = 0;
 
-    _totSaldo = double.parse(mutasiData![0].totSetoran!) - double.parse(mutasiData[0].totTarikan!);
-    _totalTrx = double.parse(mutasiData[0].totSetoran!) + double.parse(mutasiData[0].totTarikan!);
-    _countSetoran = mutasiData.where((element) => element.dbcr == 'CR').length ?? 0;
-    _countTarikan = mutasiData.where((element) => element.dbcr == 'DB').length ?? 0;
+    _totSaldo = double.parse(mutasiData![0].totSetoran!) -
+        double.parse(mutasiData[0].totTarikan!);
+    _totalTrx = double.parse(mutasiData[0].totSetoran!) +
+        double.parse(mutasiData[0].totTarikan!);
+    _countSetoran =
+        mutasiData.where((element) => element.dbcr == 'CR').length ?? 0;
+    _countTarikan =
+        mutasiData.where((element) => element.dbcr == 'DB').length ?? 0;
 
-    int _countTotal = mutasiData != null ? mutasiData.where((element) => element.status != 'Gagal').length : 0;
+    int _countTotal = mutasiData != null
+        ? mutasiData.where((element) => element.status != 'Gagal').length
+        : 0;
     return TicketWidget(
       width: MediaQuery.of(context).size.width, //test
       height: MediaQuery.of(context).size.height * 0.35, //test
@@ -191,7 +275,9 @@ class _MainKlad extends State<MainKlad> {
                     Row(
                       children: [
                         Text(
-                          "Summary transaksi " + (produkProv.getSelectedProdukName ?? ' - ').toLowerCase(),
+                          "Summary transaksi " +
+                              (produkProv.getSelectedProdukName ?? ' - ')
+                                  .toLowerCase(),
                           style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -257,7 +343,12 @@ class _MainKlad extends State<MainKlad> {
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         _cardValSummary(
-                          valSummary: mutasiData != null ? mutasiData.where((element) => element.isUpload == 'Y').length.toString() : '0',
+                          valSummary: mutasiData != null
+                              ? mutasiData
+                                  .where((element) => element.isUpload == 'Y')
+                                  .length
+                                  .toString()
+                              : '0',
                           tittle: 'Ter-Upload',
                           // icon: FlutterIcons.upload_cloud_fea,
                           icon: Iconsax.document_cloud,
@@ -266,7 +357,12 @@ class _MainKlad extends State<MainKlad> {
                         ),
                         SizedBox(width: 20),
                         _cardValSummary(
-                          valSummary: mutasiData != null ? mutasiData.where((element) => element.isUpload == 'N').length.toString() : '0',
+                          valSummary: mutasiData != null
+                              ? mutasiData
+                                  .where((element) => element.isUpload == 'N')
+                                  .length
+                                  .toString()
+                              : '0',
                           tittle: 'Belum Ter-Upload',
                           // icon: FlutterIcons.upload_cloud_fea,
                           icon: Iconsax.document_cloud,
@@ -283,7 +379,9 @@ class _MainKlad extends State<MainKlad> {
                       children: [
                         tipe == 'KREDIT'
                             ? _cardValSummary(
-                                valSummary: mutasiData != null ? mutasiData[0].totDenda! : '0',
+                                valSummary: mutasiData != null
+                                    ? mutasiData[0].totDenda!
+                                    : '0',
                                 tittle: 'Denda',
                                 // icon: FlutterIcons.arrow_circle_o_down_faw,
                                 icon: Iconsax.arrow_circle_down,
@@ -345,7 +443,9 @@ class _MainKlad extends State<MainKlad> {
   }) {
     return Container(
       padding: EdgeInsets.all(10),
-      width: isSilngleCard ? deviceWidth(context) / 1.2 : deviceWidth(context) / 2.6,
+      width: isSilngleCard
+          ? deviceWidth(context) / 1.2
+          : deviceWidth(context) / 2.6,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8.0),
@@ -390,7 +490,8 @@ class _MainKlad extends State<MainKlad> {
                   // shape: BadgeShape.square,
                   // color: primaryColor,
                   // borderRadius: BorderRadius.circular(8),
-                  badgeContent: Text(countVal, style: TextStyle(color: Colors.white)),
+                  badgeContent:
+                      Text(countVal, style: TextStyle(color: Colors.white)),
                 )
               : Container(
                   height: 0,
@@ -432,7 +533,9 @@ class _MainKlad extends State<MainKlad> {
           }
           return ListView.builder(
             shrinkWrap: true,
-            itemCount: produkProv.muatasiProdukCollection == null ? 0 : produkProv.muatasiProdukCollection!.length,
+            itemCount: produkProv.muatasiProdukCollection == null
+                ? 0
+                : produkProv.muatasiProdukCollection!.length,
             scrollDirection: Axis.vertical,
             physics: BouncingScrollPhysics(),
             itemBuilder: (BuildContext context, int index) {
@@ -449,9 +552,11 @@ class _MainKlad extends State<MainKlad> {
     return Consumer<ProdukCollectionProvider>(
       builder: (context, produkProvider, _) {
         if (produkProvider.produkCollection == null) {
-          produkProvider.dataProduk(context);
+          produkProvider.dataProduk(context,
+              autoSelect: true); // TAMBAHKAN autoSelect: true
           return LottiePrimaryLoader();
         }
+
         return Container(
           height: 90,
           margin: EdgeInsets.only(left: 10),
