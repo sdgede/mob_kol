@@ -21,16 +21,20 @@ class HomeKolektor extends StatefulWidget {
   HomeKolektorState createState() => HomeKolektorState();
 }
 
-class HomeKolektorState extends State<HomeKolektor> {
+class HomeKolektorState extends State<HomeKolektor>
+    with WidgetsBindingObserver {
   GlobalProvider? globalProv;
   ProdukCollectionProvider? produkProv;
   List? dataMenuKolektor, dataSetting;
 
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final GlobalKey _setting = GlobalKey();
+  bool _hasShownSettingShowcase = false;
+
+  // Tambahkan TabController
+  TabController? _tabController;
 
   void logOut() async {
-    // SharedPreferences prefs = await SharedPreferences.getInstance();
     bool res = await DialogUtils.instance.showInfo(
           context: context,
           title: "Pemberitahuan!",
@@ -83,18 +87,37 @@ class HomeKolektorState extends State<HomeKolektor> {
   }
 
   _showShowcase(context) {
+    // Reset flag ketika showcase dimulai ulang dari tombol help
+    setState(() {
+      _hasShownSettingShowcase = false;
+    });
+
     ShowCaseWidget.of(context).startShowCase([
       ...dataMenuKolektor!.map((item) => item.key).toList(),
       _setting,
-      ...dataSetting!.map((item) => item.key).toList(),
     ]);
+  }
+
+  _showSettingShowcase(context) {
+    if (!_hasShownSettingShowcase) {
+      setState(() {
+        _hasShownSettingShowcase = true;
+      });
+
+      // Delay sedikit agar tab sudah ter-render
+      Future.delayed(Duration(milliseconds: 300), () {
+        if (mounted) {
+          ShowCaseWidget.of(context).startShowCase([
+            ...dataSetting!.map((item) => item.key).toList(),
+          ]);
+        }
+      });
+    }
   }
 
   _checkFirstTime() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    bool firstTime = prefs.getBool('first_time') == null
-        ? true
-        : prefs.getBool('first_time')!;
+    bool firstTime = prefs.getBool('first_time') ?? true;
 
     // cek migrasi
     if (globalProv!.getConnectionMode == config.onlineMode && !firstTime) {
@@ -109,6 +132,8 @@ class HomeKolektorState extends State<HomeKolektor> {
       WidgetsBinding.instance.addPostFrameCallback(
         (_) {
           _showShowcase(context);
+          // Set first_time menjadi false setelah showcase pertama kali
+          prefs.setBool('first_time', false);
         },
       );
     }
@@ -117,6 +142,8 @@ class HomeKolektorState extends State<HomeKolektor> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+
     globalProv = Provider.of<GlobalProvider>(context, listen: false);
     produkProv = Provider.of<ProdukCollectionProvider>(context, listen: false);
     dataSetting = IconUtils.instance.dataSetting();
@@ -131,6 +158,14 @@ class HomeKolektorState extends State<HomeKolektor> {
     _checkFirstTime();
   }
 
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _tabController?.dispose();
+    super.dispose();
+  }
+
+  @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       produkProv!.setAllDatafirstSelectedProduct(isListen: false);
@@ -150,123 +185,147 @@ class HomeKolektorState extends State<HomeKolektor> {
         resizeToAvoidBottomInset: false,
         floatingActionButton: FloatingActionButton(
           onPressed: () {
-            _showShowcase(context);
+            // Kembali ke tab Home sebelum mulai showcase
+            if (_tabController != null && _tabController!.index != 0) {
+              _tabController!.animateTo(0);
+              Future.delayed(Duration(milliseconds: 300), () {
+                _showShowcase(context);
+              });
+            } else {
+              _showShowcase(context);
+            }
           },
           child: Icon(Icons.help),
           backgroundColor: accentColor,
         ),
         body: DefaultTabController(
           length: 2,
-          child: NestedScrollView(
-            headerSliverBuilder:
-                (BuildContext context, bool innerBoxIsScrolled) {
-              return <Widget>[
-                SliverAppBar(
-                  expandedHeight: deviceHeight(context) * 0.34,
-                  floating: false,
-                  pinned: true,
-                  titleSpacing: 0,
-                  backgroundColor:
-                      innerBoxIsScrolled ? primaryColor : accentColor,
-                  actionsIconTheme: IconThemeData(opacity: 0.0),
-                  title: Container(
-                    height: 60,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: <Widget>[
-                        Container(
-                          margin: EdgeInsets.only(left: 15),
-                          child: Text(
-                            '',
-                            maxLines: 1,
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                            ),
-                          ),
-                        )
-                      ],
-                    ),
-                  ),
-                  flexibleSpace: FlexibleSpaceBar(
-                    background: Container(
-                      color: Colors.white,
-                      child: Stack(
+          child: Builder(builder: (BuildContext context) {
+            // Dapatkan TabController dari DefaultTabController
+            _tabController = DefaultTabController.of(context);
+
+            return NestedScrollView(
+              headerSliverBuilder:
+                  (BuildContext context, bool innerBoxIsScrolled) {
+                return <Widget>[
+                  SliverAppBar(
+                    expandedHeight: deviceHeight(context) * 0.34,
+                    floating: false,
+                    pinned: true,
+                    titleSpacing: 0,
+                    backgroundColor:
+                        innerBoxIsScrolled ? primaryColor : accentColor,
+                    actionsIconTheme: IconThemeData(opacity: 0.0),
+                    title: Container(
+                      height: 60,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: <Widget>[
                           Container(
-                            height: MediaQuery.of(context).size.height * 0.22,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [accentColor, primaryColor],
+                            margin: EdgeInsets.only(left: 15),
+                            child: Text(
+                              '',
+                              maxLines: 1,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
                               ),
-                              borderRadius: BorderRadius.only(
-                                  bottomRight: Radius.circular(20.0),
-                                  bottomLeft: Radius.circular(20.0)),
                             ),
-                          ),
-                          ListView(
-                            children: <Widget>[
-                              Container(
-                                alignment: Alignment.center,
-                                margin: EdgeInsets.only(top: (h * 0.12)),
-                                child: Column(
-                                  children: <Widget>[
-                                    Container(
-                                      child: Image.asset(
-                                        'assets/icon/icons8-user-100.png',
-                                      ),
-                                    ),
-                                    SizedBox(height: 8),
-                                    Text(
-                                      config.dataLogin['nama'],
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 20,
-                                      ),
-                                    ),
-                                    SizedBox(height: 5),
-                                    Text(
-                                      'KOLEKTOR',
-                                      style: TextStyle(
-                                          color: Colors.grey.shade700),
-                                    ),
-                                  ],
-                                ),
-                              )
-                            ],
-                          ),
+                          )
                         ],
                       ),
                     ),
-                  ),
-                ),
-                SliverPersistentHeader(
-                  delegate: _SliverAppBarDelegate(
-                    TabBar(
-                      labelColor: primaryColor,
-                      indicatorColor: primaryColor,
-                      unselectedLabelColor: Colors.black87,
-                      tabs: [
-                        Tab(text: 'Home'),
-                        Showcase(
-                            key: _setting,
-                            description: "Klik untuk ke menu setting",
-                            child: Tab(text: 'Setting')),
-                      ],
+                    flexibleSpace: FlexibleSpaceBar(
+                      background: Container(
+                        color: Colors.white,
+                        child: Stack(
+                          children: <Widget>[
+                            Container(
+                              height: MediaQuery.of(context).size.height * 0.22,
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [accentColor, primaryColor],
+                                ),
+                                borderRadius: BorderRadius.only(
+                                    bottomRight: Radius.circular(20.0),
+                                    bottomLeft: Radius.circular(20.0)),
+                              ),
+                            ),
+                            ListView(
+                              children: <Widget>[
+                                Container(
+                                  alignment: Alignment.center,
+                                  margin: EdgeInsets.only(top: (h * 0.12)),
+                                  child: Column(
+                                    children: <Widget>[
+                                      Container(
+                                        child: Image.asset(
+                                          'assets/icon/icons8-user-100.png',
+                                        ),
+                                      ),
+                                      SizedBox(height: 8),
+                                      Text(
+                                        config.dataLogin['nama'],
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 20,
+                                        ),
+                                      ),
+                                      SizedBox(height: 5),
+                                      Text(
+                                        'KOLEKTOR',
+                                        style: TextStyle(
+                                            color: Colors.grey.shade700),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
-                  pinned: true,
-                ),
-              ];
-            },
-            body: TabBarView(
-              children: [
-                listMenuHome(list: dataMenuKolektor!, typeMenu: 'menu_home'),
-                listMenuHome(list: dataSetting!, typeMenu: 'menu_setting'),
-              ],
-            ),
-          ),
+                  SliverPersistentHeader(
+                    delegate: _SliverAppBarDelegate(
+                      TabBar(
+                        labelColor: primaryColor,
+                        indicatorColor: primaryColor,
+                        unselectedLabelColor: Colors.black87,
+                        onTap: (index) {
+                          if (index == 1) {
+                            // Tab Setting diklik
+                            _showSettingShowcase(context);
+                          }
+                        },
+                        tabs: [
+                          Tab(text: 'Home'),
+                          Showcase(
+                              key: _setting,
+                              description: "Klik untuk ke menu setting",
+                              disposeOnTap: true,
+                              onTargetClick: () {
+                                // Trigger showcase setting
+                                _showSettingShowcase(context);
+                              },
+                              child: Tab(text: 'Setting')),
+                        ],
+                      ),
+                    ),
+                    pinned: true,
+                  ),
+                ];
+              },
+              body: TabBarView(
+                children: [
+                  listMenuHome(list: dataMenuKolektor!, typeMenu: 'menu_home'),
+                  listMenuHome(list: dataSetting!, typeMenu: 'menu_setting'),
+                ],
+              ),
+            );
+          }),
         ),
       ),
     );
@@ -338,7 +397,6 @@ class HomeKolektorState extends State<HomeKolektor> {
                                       list[index].icon,
                                     ),
                                   ),
-                                  // toAnimate: true,
                                   showBadge: globalProv!.getConnectionMode ==
                                               config.onlineMode &&
                                           list[index].type == "DATA_PENAGIHAN"
@@ -368,7 +426,6 @@ class HomeKolektorState extends State<HomeKolektor> {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: <Widget>[
                                 Icon(
-                                  // FlutterIcons.ios_arrow_forward_ion,
                                   Iconsax.arrow_right_3,
                                   color: Colors.black38,
                                 ),
@@ -387,20 +444,6 @@ class HomeKolektorState extends State<HomeKolektor> {
       ],
     );
   }
-
-  // Widget borderContent({double height = 10, bool isSliver = false}) {
-  //   return isSliver
-  //       ? SliverToBoxAdapter(
-  //           child: Container(
-  //             height: height,
-  //             color: Colors.grey.shade100,
-  //           ),
-  //         )
-  //       : Container(
-  //           height: height,
-  //           color: Colors.grey.shade100,
-  //         );
-  // }
 }
 
 class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
